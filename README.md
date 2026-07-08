@@ -32,6 +32,8 @@ this repo (public)
 ├── flake.nix                      lib.mkWorkspaceShell + templates.workspace
 ├── lib/mk-workspace-shell.nix     the shell builder
 └── templates/workspace/           starter for your private workspace repo
+                                   (includes a CLAUDE.md so Claude Code can help
+                                   you set up and maintain your workspace)
 
 your workspace repo (private)
 ├── flake.nix                      devShell per project; framework as flake input

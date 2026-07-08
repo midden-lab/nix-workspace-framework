@@ -1,0 +1,55 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## What This Repo Is
+
+The **public** nix-workspace-framework: a small, reusable framework for per-project Nix dev environments (flakes + direnv + zsh). It ships exactly two things via `flake.nix`:
+
+- `lib.mkWorkspaceShell` — the devShell builder (`lib/mk-workspace-shell.nix`)
+- `templates.workspace` — a starter for a consumer's private workspace repo (`templates/workspace/`)
+
+Consumers pin this repo as a flake input and call `framework.lib.mkWorkspaceShell { inherit pkgs common; }`. README.md is the user-facing documentation — keep its API section in sync with the lib file.
+
+## Hard Constraints
+
+- **The `mkWorkspaceShell` argument set is a published, stable API**: `{ name, zdotdir, greeting, packages ? [], env ? {}, versionChecks ? [] }`. Renaming, removing, or changing the semantics of any argument breaks downstream workspaces pinned to `main`. Additive optional arguments are fine; anything else needs a deliberate versioning decision (tags) first.
+- **This repo is public.** Before any commit: no personal identifiers, hostnames, account names, tokens, or employer-specific strings anywhere (including comments and docs). Audit with the maintainer's local pattern list (kept OUT of this repo — listing the patterns here would itself leak them):
+  `grep -rinf ~/.config/nix-workspace-framework/leak-patterns.txt . --exclude-dir=.git` → must be empty. If the pattern file is missing, ask the maintainer; do not inline patterns into this file.
+- Commits use the repo-local noreply author email (already configured via `git config user.email` in this clone) — don't override it.
+- `templates/workspace/hooks.zsh` is the **canonical** copy of the zsh integration. Consumers hold manually-synced working copies, so changes here don't propagate automatically — keep changes rare, backward-compatible, and called out in commit messages.
+- Commit message style: plain sentence-style summaries, no conventional-commits prefixes.
+
+## Verifying Changes
+
+There is no test suite; these commands are the tests (run all three for any lib or template change):
+
+```bash
+# 1. Flake evaluates and exposes lib + template
+nix flake show path:.
+
+# 2. Reserved-key guard still throws
+nix eval --impure --expr 'let pkgs = import <nixpkgs> {}; mk = (builtins.getFlake "path:'"$PWD"'").lib.mkWorkspaceShell { inherit pkgs; common = { packages = []; }; }; in (mk { name = "x"; zdotdir = ./.; greeting = "g"; env = { shellHook = "bad"; }; }).name'
+# expect: error containing "may not override reserved keys: shellHook"
+
+# 3. Template onboarding smoke test (the path a new user takes)
+d=$(mktemp -d) && cd "$d" \
+  && nix flake init -t path:<framework-clone>#workspace \
+  && git init -q && git add -A \
+  && nix develop .#example --override-input framework path:<framework-clone> --command versions
+# expect: the example banner with real tool versions
+
+# zsh files
+zsh -n templates/workspace/hooks.zsh templates/workspace/example/.zshrc
+```
+
+## Architecture Notes
+
+- `mkWorkspaceShell` is two-stage: `{ pkgs, common }` (bound once per consumer flake) then the per-project attrset. `common.packages` + project `packages` + a generated `versions` script (writeShellScriptBin) form the shell; `NIX_SHELL_NAME` is set by the shell itself.
+- The shellHook is interactive-only (`case "$-" in *i*)`): direnv capture and `nix develop --command` runs skip banner and exec; interactive manual `nix develop` prints the banner and execs into zsh with `ZDOTDIR = <project dir store copy>`.
+- The devShell ↔ hooks.zsh contract: shell provides `NIX_SHELL_NAME` (prompt marker) and `versions` (banner); the consumer's envrc exports `WS_ZSH_DIR` (where hooks.zsh finds `*.zsh` extras). Envrc convention: capture `WS_PROJECT_ROOT="$OLDPWD"` first (inside a `source_env`'d file, `$PWD` is the envrc's own dir, not the project).
+- The template ships a `CLAUDE.md` for scaffolded workspaces — if conventions change, update it together with the example project and README.
+
+## Releasing Changes to Consumers
+
+Push to `main`; consumers pick changes up explicitly with `nix flake update framework` (their `flake.lock` pins revs, so pushes never break anyone until they update). Release tags are additive and optional.
