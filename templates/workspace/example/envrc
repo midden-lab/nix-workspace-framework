@@ -1,0 +1,16 @@
+# Project repo root. direnv evaluates the top-level .envrc in the project
+# directory; source_env then pushd's here, leaving the project dir in
+# OLDPWD. Capture it before anything else can change directories.
+export WS_PROJECT_ROOT="$OLDPWD"
+
+# Self-locate the workspace root (one level up from this file) so no
+# absolute repo path is hardcoded anywhere but the project shim.
+NIX_WORKSPACE_ROOT="${NIX_WORKSPACE_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+export NIX_WORKSPACE_ROOT
+
+use flake "$NIX_WORKSPACE_ROOT#example"
+
+export WS_ZSH_DIR="$NIX_WORKSPACE_ROOT/example"
+
+# Dynamic, project-anchored exports go here, e.g.:
+# export KUBECONFIG="$WS_PROJECT_ROOT/.kube/config"
