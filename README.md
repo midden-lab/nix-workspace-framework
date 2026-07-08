@@ -10,17 +10,21 @@ The framework is intentionally small: one Nix function (`mkWorkspaceShell`), one
 # 1. Scaffold your private workspace repo
 mkdir ~/workspace/my-workspaces && cd ~/workspace/my-workspaces
 nix flake init -t github:midden-lab/nix-workspace-framework#workspace
-git init && git add . && git commit -m "Init workspace repo"
+git init && git add .
 
-# 2. Wire up zsh (after your oh-my-zsh/prompt setup in ~/.zshrc)
+# 2. Materialize hooks.zsh from the pinned framework, then commit
+nix run .#sync-hooks
+git add hooks.zsh && git commit -m "Init workspace repo"
+
+# 3. Wire up zsh (after your oh-my-zsh/prompt setup in ~/.zshrc)
 #    source ~/workspace/my-workspaces/hooks.zsh
 
-# 3. Point a project repo at the example environment
+# 4. Point a project repo at the example environment
 cd ~/src/some-project
 echo 'source_env ~/workspace/my-workspaces/example/envrc' > .envrc
 direnv allow
 
-# 4. cd in — the environment activates, the banner prints once per session
+# 5. cd in — the environment activates, the banner prints once per session
 ```
 
 Prerequisites: Nix with `experimental-features = nix-command flakes`, [direnv](https://direnv.net) + [nix-direnv](https://github.com/nix-community/nix-direnv) (`~/.config/direnv/direnvrc` sourcing nix-direnv), zsh.
@@ -29,7 +33,8 @@ Prerequisites: Nix with `experimental-features = nix-command flakes`, [direnv](h
 
 ```
 this repo (public)
-├── flake.nix                      lib.mkWorkspaceShell + templates.workspace
+├── flake.nix                      lib.mkWorkspaceShell + lib.mkSyncHooksApp + templates.workspace
+├── hooks.zsh                      canonical zsh integration (single hand-edited copy)
 ├── lib/mk-workspace-shell.nix     the shell builder
 └── templates/workspace/           starter for your private workspace repo
                                    (includes a CLAUDE.md so Claude Code can help
@@ -39,7 +44,7 @@ your workspace repo (private)
 ├── flake.nix                      devShell per project; framework as flake input
 ├── flake.lock                     pins nixpkgs AND this framework
 ├── common.nix                     packages shared by all your projects
-├── hooks.zsh                      your working copy of the zsh integration
+├── hooks.zsh                      GENERATED from the framework via `nix run .#sync-hooks`
 └── <project>/
     ├── shell.nix                  declarative mkWorkspaceShell call
     ├── envrc                      direnv logic (use flake, exports)
@@ -87,14 +92,15 @@ The devShell ↔ hooks.zsh contract: the shell provides `NIX_SHELL_NAME` (drives
 - **Env var placement**: static vars → `env` argument; dynamic/project-anchored vars → the envrc (which captures the project repo root as `WS_PROJECT_ROOT` from `$OLDPWD` — inside a `source_env`'d file, `$PWD` is the envrc's own directory, not the project)
 - **Secrets and personal config** (accounts, tokens, hostnames) stay in `$HOME` files, never in the workspace repo; `extras.zsh` should be team-shareable
 - **devShell attr names can't contain dots**: directory `my.project` → attr `my-project`
-- **hooks.zsh is copied, not imported**: your workspace repo owns its working copy (it must self-locate your repo's path). It changes rarely; diff against `templates/workspace/hooks.zsh` when updating the framework
+- **hooks.zsh is generated, not hand-edited**: the canonical copy lives in this repo; your workspace holds a byte-identical copy (it must exist at a stable path for `~/.zshrc`, and it self-locates your repo). `nix run .#sync-hooks` regenerates it from the rev pinned in your `flake.lock`, so hooks and library never skew. Every devShell also exports `NIX_WS_FRAMEWORK_HOOKS` (the canonical file at the locked rev), and hooks.zsh warns once per session if your copy differs — so you'll know when an update touched the hooks
 
 ## Updating
 
 ```bash
-nix flake update framework    # in your workspace repo — bumps the pinned framework lib
+nix flake update framework    # in your workspace repo — bumps the pinned framework
+nix run .#sync-hooks          # regenerate hooks.zsh from the new pin (commit it)
 direnv reload                 # in a project — refresh the nix-direnv cache
-# hooks.zsh: diff your copy against templates/workspace/hooks.zsh occasionally
+exec zsh                      # pick up the refreshed hooks in your current terminal
 ```
 
 ## License

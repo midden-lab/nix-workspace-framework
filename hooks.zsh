@@ -1,6 +1,10 @@
 # Workspace zsh hooks — source this from ~/.zshrc:
 #   source ~/path/to/your-workspace/hooks.zsh
 #
+# Canonical copy: nix-workspace-framework/hooks.zsh. Workspace repos hold
+# byte-identical generated copies — refresh with `nix run .#sync-hooks`,
+# never hand-edit a workspace copy.
+#
 # Initializes direnv and adds hooks for the Nix prompt marker, workspace
 # extras sourcing, and the once-per-session version banner.
 
@@ -58,5 +62,14 @@ _direnv_ws_extras() {
     source "$f"
   done
   (( $+commands[versions] )) && versions
+
+  # Drift alert: the devShell exports the store path of the framework's
+  # canonical hooks.zsh at the locked rev (NIX_WS_FRAMEWORK_HOOKS); warn
+  # once per session when this workspace's copy differs.
+  if [[ -n "$NIX_WS_FRAMEWORK_HOOKS" && -r "$NIX_WS_FRAMEWORK_HOOKS" \
+        && -r "$NIX_WORKSPACE_ROOT/hooks.zsh" ]] \
+     && ! cmp -s "$NIX_WS_FRAMEWORK_HOOKS" "$NIX_WORKSPACE_ROOT/hooks.zsh"; then
+    print -ru2 -- "hooks.zsh differs from the pinned framework — run: nix run $NIX_WORKSPACE_ROOT#sync-hooks"
+  fi
 }
 add-zsh-hook precmd _direnv_ws_extras

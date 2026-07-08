@@ -14,6 +14,12 @@
         f (import nixpkgs { inherit system; config.allowUnfree = true; }));
     in
     {
+      # Regenerates ./hooks.zsh from the pinned framework:
+      #   nix run .#sync-hooks   (then commit the result)
+      apps = forAllSystems (pkgs: {
+        sync-hooks = framework.lib.mkSyncHooksApp pkgs;
+      });
+
       devShells = forAllSystems (pkgs:
         let
           common = import ./common.nix { inherit pkgs; };

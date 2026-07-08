@@ -20,7 +20,7 @@ let
 
   # `env` is for plain env vars only; silently overriding these would
   # break the shell in confusing ways, so fail loudly instead.
-  reservedKeys = [ "packages" "shellHook" "NIX_SHELL_NAME" ];
+  reservedKeys = [ "packages" "shellHook" "NIX_SHELL_NAME" "NIX_WS_FRAMEWORK_HOOKS" ];
   clashes = builtins.filter (k: env ? ${k}) reservedKeys;
 
   versions = pkgs.writeShellScriptBin "versions" ''
@@ -41,6 +41,11 @@ lib.throwIf (clashes != [ ])
   packages = common.packages ++ packages ++ [ versions ];
 
   NIX_SHELL_NAME = name;
+
+  # Store path of the framework's canonical hooks.zsh at the locked rev.
+  # hooks.zsh compares itself against this for the once-per-session
+  # drift alert ("run nix run .#sync-hooks").
+  NIX_WS_FRAMEWORK_HOOKS = "${../hooks.zsh}";
 
   # Two activation paths:
   #   direnv  → DIRENV_IN_ENVRC is set; skip banner and exec. hooks.zsh

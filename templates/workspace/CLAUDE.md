@@ -12,7 +12,7 @@ This repo is typically private — project envrcs often carry env vars you don't
 
 - `flake.nix` — one devShell per project; inputs `nixpkgs` + `framework`, both pinned in `flake.lock`
 - `common.nix` — packages shared by every project's shell
-- `hooks.zsh` — working copy of the zsh integration (canonical copy: the framework's `templates/workspace/hooks.zsh`)
+- `hooks.zsh` — GENERATED from the framework's canonical copy via `nix run .#sync-hooks`; never hand-edit it (project shells warn once per session when it drifts from the pinned framework)
 - `<project>/shell.nix` — declarative call: `{ pkgs, mkWorkspaceShell }: mkWorkspaceShell { name, zdotdir, greeting, packages, env, versionChecks }`
 - `<project>/envrc` — direnv logic: `WS_PROJECT_ROOT="$OLDPWD"` capture first, then `use flake "$NIX_WORKSPACE_ROOT#<attr>"`, `WS_ZSH_DIR`, and dynamic exports
 - `<project>/extras.zsh` / `profile.zsh` / `.zshrc` — team-shareable aliases / shell functions / manual-fallback entrypoint (all optional)
@@ -31,7 +31,7 @@ This repo is typically private — project envrcs often carry env vars you don't
 ## Updating
 
 - `nix flake update nixpkgs` — bump tool versions; `nix flake update framework` — bump the framework library
-- `hooks.zsh` doesn't update via the flake — diff it against the framework's `templates/workspace/hooks.zsh` when updating
+- After a framework bump: `nix run .#sync-hooks` to regenerate hooks.zsh, commit it, `exec zsh` to pick it up
 
 ## Verification
 
