@@ -15,16 +15,22 @@ autoload -Uz add-zsh-hook
 # when _direnv_ws_extras runs.
 eval "$(direnv hook zsh)"
 
-# Nix prompt marker: inserts "nix-shell ❄ " before the directory name (%c)
-# in the prompt when direnv activates a Nix env. Saves the base prompt once
-# so it never accumulates on repeated renders.
+# Nix prompt marker, shown when a Nix env is active. Themes whose PROMPT
+# contains %c (e.g. robbyrussell) get "nix-shell ❄ " inserted before the
+# directory name; themes without %c (e.g. agnoster, powerline styles) get
+# a "❄ <name>" marker prepended instead. Saves the base prompt once so it
+# never accumulates on repeated renders.
 _nix_base_prompt=""
 _nix_direnv_prompt() {
   if [[ -z "$_nix_base_prompt" ]]; then
     _nix_base_prompt="$PROMPT"
   fi
   if [[ -n "$NIX_SHELL_NAME" ]]; then
-    PROMPT="${_nix_base_prompt/\%c/nix-shell ❄ %c}"
+    if [[ "$_nix_base_prompt" == *%c* ]]; then
+      PROMPT="${_nix_base_prompt/\%c/nix-shell ❄ %c}"
+    else
+      PROMPT="%B%F{cyan}❄ ${NIX_SHELL_NAME}%f%b ${_nix_base_prompt}"
+    fi
   else
     PROMPT="$_nix_base_prompt"
   fi
