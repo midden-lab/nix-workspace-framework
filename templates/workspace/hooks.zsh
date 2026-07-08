@@ -20,6 +20,12 @@ eval "$(direnv hook zsh)"
 # directory name; themes without %c (e.g. agnoster, powerline styles) get
 # a "❄ <name>" marker prepended instead. Saves the base prompt once so it
 # never accumulates on repeated renders.
+#
+# The snowflake carries VS15 (U+FE0E, text presentation): some terminals
+# (e.g. Ghostty) otherwise render bare U+2744 emoji-wide while zsh counts
+# it as one column, and the width mismatch breaks the prompt line on
+# redraw.
+_nix_marker_char=$'❄︎'
 _nix_base_prompt=""
 _nix_direnv_prompt() {
   if [[ -z "$_nix_base_prompt" ]]; then
@@ -27,9 +33,9 @@ _nix_direnv_prompt() {
   fi
   if [[ -n "$NIX_SHELL_NAME" ]]; then
     if [[ "$_nix_base_prompt" == *%c* ]]; then
-      PROMPT="${_nix_base_prompt/\%c/nix-shell ❄ %c}"
+      PROMPT="${_nix_base_prompt/\%c/nix-shell ${_nix_marker_char} %c}"
     else
-      PROMPT="%B%F{cyan}❄ ${NIX_SHELL_NAME}%f%b ${_nix_base_prompt}"
+      PROMPT="%B%F{cyan}${_nix_marker_char} ${NIX_SHELL_NAME}%f%b ${_nix_base_prompt}"
     fi
   else
     PROMPT="$_nix_base_prompt"
