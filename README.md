@@ -61,7 +61,7 @@ your project repos (anywhere)
 
 ## How activation works
 
-**direnv path (primary):** `cd` into a project repo → the one-line `.envrc` shim `source_env`s your workspace repo's project envrc → `use flake "$NIX_WORKSPACE_ROOT#<attr>"` loads the devShell (cached by nix-direnv, near-instant after first load) → `hooks.zsh` sources the project's `*.zsh` extras and prints the version banner, once per session per project. Leaving the directory unloads the env; run `versions` anytime to reprint the banner.
+**direnv path (primary):** `cd` into a project repo → the one-line `.envrc` shim `source_env`s your workspace repo's project envrc → `use flake "$NIX_WORKSPACE_ROOT#<attr>"` loads the devShell (cached by nix-direnv, near-instant after first load) → `hooks.zsh` sources the project's `*.zsh` extras and prints the version banner (once per session per project). Extras re-source whenever you enter a project or edit their files — the project you're in is always authoritative, and edits apply on the next prompt — so they must be idempotent: aliases and function definitions only, no one-shot side effects. Leaving the directory unloads the env; run `versions` anytime to reprint the banner.
 
 **Manual fallback:** `nix develop <workspace>#<attr>` prints the banner and execs into zsh with `ZDOTDIR` pointing at the project's config (which re-sources your global zsh setup and the project extras). Non-interactive runs (`nix develop --command ...`) skip banner and exec entirely.
 
@@ -133,6 +133,7 @@ exec zsh                      # pick up the refreshed hooks in your current term
 
 - **The prompt marker assumes a static `PROMPT`.** hooks.zsh captures the base prompt once, on first render, then inserts the marker (`nix-shell ❄︎` before `%c` for themes like robbyrussell, a prepended `❄︎ <name>` otherwise). Themes that rewrite `PROMPT` on every precmd — powerlevel10k, some starship setups — will clobber the marker or be frozen by the captured copy. Static-PROMPT themes (robbyrussell, agnoster and most oh-my-zsh themes) work as intended. A p10k segment driven by `$NIX_SHELL_NAME` would be the native alternative for those setups.
 - **Only the first `%c` gets the marker.** A theme with multiple `%c` occurrences sees the insertion once.
+- **Aliases persist after you leave a project.** direnv unloads env vars on exit, but zsh has no unload channel for aliases and functions, so the last-entered project's definitions remain in a shell that's outside every project (`exec zsh` resets). *Inside* a project you always have that project's own definitions — extras re-source on entry. True unload is a tracked investigation, not a current feature.
 
 ## Testing
 

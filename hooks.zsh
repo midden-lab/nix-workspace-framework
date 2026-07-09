@@ -54,19 +54,52 @@ _nix_direnv_prompt() {
 add-zsh-hook precmd _nix_direnv_prompt
 
 # Source workspace extras (aliases, functions) and print the version
-# banner, once per session per workspace. precmd rather than chpwd so it
-# also fires when a terminal opens directly inside a project directory.
-# direnv can only export env vars, so aliases/functions need this
-# side-channel keyed on WS_ZSH_DIR.
-typeset -gA _ws_extras_loaded
-_direnv_ws_extras() {
-  [[ -n "$WS_ZSH_DIR" && -d "$WS_ZSH_DIR" ]] || return 0
-  [[ -n "${_ws_extras_loaded[$WS_ZSH_DIR]}" ]] && return 0
-  _ws_extras_loaded[$WS_ZSH_DIR]=1
-  local f
-  for f in "$WS_ZSH_DIR"/*.zsh(N); do
-    source "$f"
+# banner. Extras re-source whenever you enter a project (including
+# re-entry and A→B→A hops) or their files change, so the project you're
+# in is always authoritative and edits apply on the next prompt — they
+# must therefore be idempotent (aliases/functions only, no one-shot side
+# effects). The banner and drift alert stay once per session per
+# workspace. precmd rather than chpwd so it also fires when a terminal
+# opens directly inside a project directory. direnv can only export env
+# vars, so aliases/functions need this side-channel keyed on WS_ZSH_DIR.
+zmodload -F zsh/stat b:zstat 2>/dev/null
+
+typeset -gA _ws_banner_shown
+typeset -g _ws_extras_dir="" _ws_extras_sig=""
+
+# mtime+size signature of "$1"/*.zsh in REPLY, so edits re-source on the
+# next prompt. Degrades gracefully if zsh/stat is unavailable: signature
+# stays constant and only entry/re-entry triggers re-sourcing.
+_ws_extras_signature() {
+  local f out=""
+  local -a a
+  for f in "$1"/*.zsh(N); do
+    out+="$f"
+    zstat -A a +mtime -- "$f" 2>/dev/null && out+=":$a[1]"
+    zstat -A a +size  -- "$f" 2>/dev/null && out+=":$a[1]"
+    out+=";"
   done
+  REPLY="$out"
+}
+
+_direnv_ws_extras() {
+  if [[ -z "$WS_ZSH_DIR" || ! -d "$WS_ZSH_DIR" ]]; then
+    _ws_extras_dir=""   # left the project: next entry re-sources
+    return 0
+  fi
+  local REPLY sig
+  _ws_extras_signature "$WS_ZSH_DIR"; sig="$REPLY"
+  if [[ "$WS_ZSH_DIR" != "$_ws_extras_dir" || "$sig" != "$_ws_extras_sig" ]]; then
+    _ws_extras_dir="$WS_ZSH_DIR"
+    _ws_extras_sig="$sig"
+    local f
+    for f in "$WS_ZSH_DIR"/*.zsh(N); do
+      source "$f"
+    done
+  fi
+
+  [[ -n "${_ws_banner_shown[$WS_ZSH_DIR]}" ]] && return 0
+  _ws_banner_shown[$WS_ZSH_DIR]=1
   (( $+commands[versions] )) && versions
 
   # Drift alert: the devShell exports the store path of the framework's

@@ -25,7 +25,7 @@ This repo is typically private — project envrcs often carry env vars you don't
 - Never hardcode this repo's path in envrc/zsh files — use `$NIX_WORKSPACE_ROOT` (exported by hooks.zsh; envrc files self-locate as a fallback). The only allowed hardcoded paths: the one-line project shims and the `source .../hooks.zsh` line in `~/.zshrc`
 - Secrets and personal config (accounts, tokens, hostnames) stay in `$HOME` files, never committed here; `extras.zsh` must be team-shareable. Not just repo hygiene: project dirs are copied into the Nix store (`zdotdir`), which is world-readable on multi-user Nix installs — a secret in a project dir leaks to every local user even if it's never committed
 - devShell attr names can't contain dots: directory `my.project` → attr `my-project`
-- After editing `extras.zsh`/`profile.zsh`, open a new shell (`exec zsh`) — extras source once per session; `direnv reload` alone won't re-source them
+- `extras.zsh`/`profile.zsh` re-source automatically on the next prompt after an edit or on re-entering the project — keep them idempotent (aliases/functions only, no one-shot side effects). Definitions persist after leaving a project (zsh has no unload channel); `exec zsh` resets
 - New project: copy `example/` and follow its README; register the devShell in `flake.nix`; `git add` everything
 
 ## Updating
