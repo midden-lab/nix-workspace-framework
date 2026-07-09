@@ -32,16 +32,12 @@ Consumers pin this repo as a flake input and call `framework.lib.mkWorkspaceShel
 #    once-per-session, drift alert), banner rendering, zsh syntax.
 nix flake check
 
-# 2. Template onboarding smoke test (the path a new user takes) — still
-#    manual (needs a real Nix daemon; automation tracked in issue #16):
-d=$(mktemp -d) && cd "$d" \
-  && nix flake init -t path:<framework-clone>#workspace \
-  && git init -q && git add -A \
-  && nix run .#sync-hooks --override-input framework path:<framework-clone> \
-  && git add hooks.zsh \
-  && nix develop .#example --override-input framework path:<framework-clone> --command versions
-# expect: hooks.zsh materialized byte-identical to the canonical copy
-# (cmp it), then the example banner with real tool versions
+# 2. Integration tests (template onboarding, sync-hooks byte-identity,
+#    example devShell, direnv end-to-end when direnv is on PATH). Impure —
+#    needs a real Nix daemon, so it's a script rather than a check. It
+#    rewrites the scaffold's framework input to this clone, so it tests
+#    the working tree.
+./tests/integration.sh
 ```
 
 New behavior in lib/ or hooks.zsh should land with a regression test in `tests/`. The flake's `nixpkgs` input exists only for the checks — the library never uses it; keep it that way.
