@@ -16,8 +16,14 @@ autoload -Uz add-zsh-hook
 
 # --- direnv ---
 # Registered before our precmd hook so WS_ZSH_DIR is already exported
-# when _direnv_ws_extras runs.
-eval "$(direnv hook zsh)"
+# when _direnv_ws_extras runs. Guarded: a missing direnv usually means
+# the Nix PATH loader vanished from shell init (macOS updates restore
+# the stock /etc/zshrc), and a raw command-not-found here is cryptic.
+if (( $+commands[direnv] )); then
+  eval "$(direnv hook zsh)"
+else
+  print -ru2 -- "hooks.zsh: direnv not on PATH — workspace environments will not activate. Is the Nix loader in your shell init? (macOS updates can remove it from /etc/zshrc)"
+fi
 
 # Nix prompt marker, shown when a Nix env is active. Themes whose PROMPT
 # contains %c (e.g. robbyrussell) get "nix-shell ❄ " inserted before the

@@ -65,4 +65,12 @@ _direnv_ws_extras 2> $TMPDIR/err2
 grep -q "differs from the pinned framework" $TMPDIR/err2 \
   || fail "drift warning missing after local edit (stderr: $(<$TMPDIR/err2))"
 
+# --- missing direnv: sourcing must warn, not die with command-not-found ---
+zshbin=${commands[zsh]}
+out=$(PATH=/nonexistent $zshbin -f -c "source $CANONICAL" 2>&1)
+rc=$?
+(( rc == 0 )) || fail "sourcing without direnv exited $rc: $out"
+[[ $out == *"direnv not on PATH"* ]] || fail "missing-direnv warning absent: got '$out'"
+[[ $out != *"command not found"* ]] || fail "raw command-not-found leaked: $out"
+
 print "hooks-logic: all tests passed"
