@@ -60,6 +60,31 @@ in
     touch $out
   '';
 
+  # SPIKE (#18): bash and fish ports of the hooks logic, same semantics.
+  hooks-bash-logic = pkgs.runCommand "hooks-bash-logic"
+    {
+      nativeBuildInputs = [ pkgs.bash ];
+      CANONICAL = ../hooks.bash;
+    } ''
+    mkdir mock
+    printf '#!/bin/sh\nexit 0\n' > mock/direnv
+    chmod +x mock/direnv
+    NOMOCK_PATH=$PATH PATH=$PWD/mock:$PATH bash ${./hooks-bash-logic.sh}
+    touch $out
+  '';
+
+  hooks-fish-logic = pkgs.runCommand "hooks-fish-logic"
+    {
+      nativeBuildInputs = [ pkgs.fish ];
+      CANONICAL = ../hooks.fish;
+    } ''
+    mkdir mock
+    printf '#!/bin/sh\nexit 0\n' > mock/direnv
+    chmod +x mock/direnv
+    HOME=$TMPDIR PATH=$PWD/mock:$PATH fish ${./hooks-fish-logic.fish}
+    touch $out
+  '';
+
   # The generated `versions` script renders the greeting and version lines.
   banner-render = pkgs.runCommand "banner-render" { } ''
     out_text=$(${versionsBin}/bin/versions)
