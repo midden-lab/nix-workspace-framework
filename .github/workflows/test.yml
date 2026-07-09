@@ -13,7 +13,7 @@ jobs:
         os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: DeterminateSystems/nix-installer-action@main
       # direnv enables the integration script's end-to-end test
       # (it skips gracefully when absent, but CI should run it).
