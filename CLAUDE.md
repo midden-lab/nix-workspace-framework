@@ -24,17 +24,16 @@ Consumers pin this repo as a flake input and call `framework.lib.mkWorkspaceShel
 
 ## Verifying Changes
 
-There is no test suite; these commands are the tests (run all three for any lib or template change):
-
 ```bash
-# 1. Flake evaluates and exposes lib + template
-nix flake show path:.
+# 1. The regression suite (tests/checks.nix) — run for ANY change.
+#    Covers: eval-level API contract (reserved-key guard, env passthrough,
+#    NIX_SHELL_NAME / NIX_WS_FRAMEWORK_HOOKS), hooks.zsh logic in headless
+#    zsh with a mocked direnv (prompt marker both theme branches, extras
+#    once-per-session, drift alert), banner rendering, zsh syntax.
+nix flake check
 
-# 2. Reserved-key guard still throws
-nix eval --impure --expr 'let pkgs = import <nixpkgs> {}; mk = (builtins.getFlake "path:'"$PWD"'").lib.mkWorkspaceShell { inherit pkgs; common = { packages = []; }; }; in (mk { name = "x"; zdotdir = ./.; greeting = "g"; env = { shellHook = "bad"; }; }).name'
-# expect: error containing "may not override reserved keys: shellHook"
-
-# 3. Template onboarding smoke test (the path a new user takes)
+# 2. Template onboarding smoke test (the path a new user takes) — still
+#    manual (needs a real Nix daemon; automation tracked in issue #16):
 d=$(mktemp -d) && cd "$d" \
   && nix flake init -t path:<framework-clone>#workspace \
   && git init -q && git add -A \
@@ -43,10 +42,9 @@ d=$(mktemp -d) && cd "$d" \
   && nix develop .#example --override-input framework path:<framework-clone> --command versions
 # expect: hooks.zsh materialized byte-identical to the canonical copy
 # (cmp it), then the example banner with real tool versions
-
-# zsh files
-zsh -n hooks.zsh templates/workspace/example/.zshrc
 ```
+
+New behavior in lib/ or hooks.zsh should land with a regression test in `tests/`. The flake's `nixpkgs` input exists only for the checks — the library never uses it; keep it that way.
 
 ## Architecture Notes
 

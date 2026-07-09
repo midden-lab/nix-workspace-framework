@@ -127,6 +127,10 @@ direnv reload                 # in a project — refresh the nix-direnv cache
 exec zsh                      # pick up the refreshed hooks in your current terminal
 ```
 
+## Testing
+
+`nix flake check` runs the regression suite (`tests/checks.nix`): API-contract tests for `mkWorkspaceShell`, behavioral tests for hooks.zsh in headless zsh (prompt marker, extras sourcing, drift alert), banner rendering, and syntax checks. The flake's `nixpkgs` input exists only for these checks; the library always takes `pkgs` from your flake, and you can add `inputs.framework.inputs.nixpkgs.follows = "nixpkgs"` to keep a single nixpkgs in your lock.
+
 ## License
 
 MIT — see [LICENSE](LICENSE).

@@ -1,7 +1,13 @@
 {
   description = "Per-project Nix dev environments with direnv + zsh integration";
 
-  outputs = { self }: {
+  # Used only by the `checks` output (the regression tests) — the library
+  # itself always takes `pkgs` from the consumer. Consumers who want to
+  # avoid a second nixpkgs in their lock can set
+  # `inputs.framework.inputs.nixpkgs.follows = "nixpkgs"`.
+  inputs.nixpkgs.url = "github:NixOS/nixpkgs/c4013e501c048ae7c4a8940c92837636042bf6c3";
+
+  outputs = { self, nixpkgs }: {
     # The workspace shell builder. Called from a consumer flake as:
     #   mkWorkspaceShell = framework.lib.mkWorkspaceShell { inherit pkgs common; };
     #   mkWorkspaceShell { name = ...; zdotdir = ./.; ... }
@@ -29,5 +35,13 @@
       description = "Private workspace repo consuming this framework (one example project)";
     };
     templates.default = self.templates.workspace;
+
+    # Regression suite: `nix flake check` (see tests/checks.nix).
+    checks = nixpkgs.lib.genAttrs
+      [ "aarch64-darwin" "x86_64-darwin" "aarch64-linux" "x86_64-linux" ]
+      (system: import ./tests/checks.nix {
+        pkgs = import nixpkgs { inherit system; };
+        framework = self;
+      });
   };
 }
