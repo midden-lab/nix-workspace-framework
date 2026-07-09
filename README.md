@@ -63,6 +63,30 @@ your project repos (anywhere)
 
 **Manual fallback:** `nix develop <workspace>#<attr>` prints the banner and execs into zsh with `ZDOTDIR` pointing at the project's config (which re-sources your global zsh setup and the project extras). Non-interactive runs (`nix develop --command ...`) skip banner and exec entirely.
 
+## Anatomy of a project envrc
+
+Each project's envrc in your workspace repo follows the same five-line skeleton (see `templates/workspace/example/envrc`):
+
+```bash
+export WS_PROJECT_ROOT="$OLDPWD"
+
+NIX_WORKSPACE_ROOT="${NIX_WORKSPACE_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+export NIX_WORKSPACE_ROOT
+
+use flake "$NIX_WORKSPACE_ROOT#myproject"
+
+export WS_ZSH_DIR="$NIX_WORKSPACE_ROOT/myproject"
+export KUBECONFIG="$WS_PROJECT_ROOT/.kube/config"   # dynamic exports last
+```
+
+Line by line:
+
+1. **`WS_PROJECT_ROOT="$OLDPWD"` — first, always.** direnv evaluates the shim `.envrc` in the project repo, then `source_env` pushd's into this file's directory — so here, `$PWD` is the *workspace* project dir, not the project repo. `$OLDPWD` still holds the project repo at this moment; capture it before anything else changes directories. Every project-anchored export hangs off it.
+2. **`NIX_WORKSPACE_ROOT` self-location fallback.** Normally hooks.zsh exports this, but direnv can run where your zsh hooks never loaded (editor direnv plugins, `direnv exec` in scripts). The `${VAR:-...}` form keeps the existing value when present and derives it from this file's own path otherwise — so the workspace path stays hardcoded in exactly one place: the project shim.
+3. **`use flake`** loads the devShell (cached by nix-direnv).
+4. **`WS_ZSH_DIR`** tells hooks.zsh where to find this project's `*.zsh` extras.
+5. **Dynamic exports** go last, anchored to `$WS_PROJECT_ROOT`. Static vars belong in shell.nix's `env` argument instead; never export `NIX_SHELL_NAME` here — the devShell sets it.
+
 ## The stable API
 
 `mkWorkspaceShell` is called in two stages:
@@ -76,8 +100,8 @@ mkWorkspaceShell {
   zdotdir = ./.;               # project dir; ZDOTDIR for the manual fallback
   greeting = "🚀 ...";         # banner headline
   packages = with pkgs; [ ];   # project-specific packages
-  env = { };                   # static env vars (reserved keys rejected:
-                               #   packages, shellHook, NIX_SHELL_NAME)
+  env = { };                   # static env vars (reserved keys rejected: packages,
+                               #   shellHook, NIX_SHELL_NAME, NIX_WS_FRAMEWORK_HOOKS)
   versionChecks = [            # rendered by the generated `versions` command
     { label = "Git:      "; command = "git --version"; }
   ];
