@@ -1,5 +1,7 @@
 # nix-workspace-framework
 
+[![test](https://github.com/midden-lab/nix-workspace-framework/actions/workflows/test.yml/badge.svg)](https://github.com/midden-lab/nix-workspace-framework/actions/workflows/test.yml)
+
 Declarative, per-project development environments using Nix flakes, direnv, and zsh. Each project gets a reproducible devShell that auto-activates on `cd`, with pinned tool versions, team-shareable aliases, and a clean separation between shared infrastructure, project tooling, and personal settings.
 
 The framework is intentionally small: one Nix function (`mkWorkspaceShell`), one zsh integration file (`hooks.zsh`), and a set of conventions. Your actual environments live in a **private workspace repo** that consumes this framework as a flake input — your project definitions, env vars, and aliases never need to be public.
@@ -128,6 +130,8 @@ exec zsh                      # pick up the refreshed hooks in your current term
 ```
 
 ## Testing
+
+`make test` runs everything CI runs: `make check` (the pure suite below) and `make integration` (`tests/integration.sh` — template onboarding and a direnv end-to-end test, which need a real Nix daemon).
 
 `nix flake check` runs the regression suite (`tests/checks.nix`): API-contract tests for `mkWorkspaceShell`, behavioral tests for hooks.zsh in headless zsh (prompt marker, extras sourcing, drift alert), banner rendering, and syntax checks. The flake's `nixpkgs` input exists only for these checks; the library always takes `pkgs` from your flake, and you can add `inputs.framework.inputs.nixpkgs.follows = "nixpkgs"` to keep a single nixpkgs in your lock.
 

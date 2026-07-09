@@ -24,6 +24,8 @@ Consumers pin this repo as a flake input and call `framework.lib.mkWorkspaceShel
 
 ## Verifying Changes
 
+`make test` runs both steps below — it is exactly what CI (.github/workflows/test.yml) runs, so green locally means green in Actions.
+
 ```bash
 # 1. The regression suite (tests/checks.nix) — run for ANY change.
 #    Covers: eval-level API contract (reserved-key guard, env passthrough,
