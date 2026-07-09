@@ -102,8 +102,10 @@ mkWorkspaceShell {
   zdotdir = ./.;               # project dir; ZDOTDIR for the manual fallback
   greeting = "🚀 ...";         # banner headline
   packages = with pkgs; [ ];   # project-specific packages
-  env = { };                   # static env vars (reserved keys rejected: packages,
-                               #   shellHook, NIX_SHELL_NAME, NIX_WS_FRAMEWORK_HOOKS)
+  env = { };                   # static env vars (strings/bools/ints only — passed through
+                               #   mkDerivation's own `env`, so any collision with a real
+                               #   derivation attribute throws, not just packages, shellHook,
+                               #   NIX_SHELL_NAME, NIX_WS_FRAMEWORK_HOOKS)
   versionChecks = [            # rendered by the generated `versions` command
     { label = "Git:      "; command = "git --version"; }
   ];

@@ -20,6 +20,14 @@ let
 
   # `env` is for plain env vars only; silently overriding these would
   # break the shell in confusing ways, so fail loudly instead.
+  #
+  # `env` is passed through to mkDerivation's own `env` argument below,
+  # which already throws on collision with any other derivation attr
+  # (NIX_SHELL_NAME, shellHook, name, ...) — verified empirically. The one
+  # gap: `packages` is mkShell-specific and stripped before mkDerivation
+  # ever sees it, so a clash there is invisible to nixpkgs' own check and
+  # must stay guarded here. The other three stay too, for one consistent
+  # message instead of depending on nixpkgs' internal wording.
   reservedKeys = [ "packages" "shellHook" "NIX_SHELL_NAME" "NIX_WS_FRAMEWORK_HOOKS" ];
   clashes = builtins.filter (k: env ? ${k}) reservedKeys;
 
@@ -39,7 +47,7 @@ in
 lib.throwIf (clashes != [ ])
   "mkWorkspaceShell (${name}): `env` may not override reserved keys: ${lib.concatStringsSep ", " clashes}"
 
-(pkgs.mkShell ({
+(pkgs.mkShell {
   packages = common.packages ++ packages ++ [ versions ];
 
   NIX_SHELL_NAME = name;
@@ -67,4 +75,11 @@ lib.throwIf (clashes != [ ])
       fi
     ;; esac
   '';
-} // env))
+
+  # Static user env vars, passed through mkDerivation's own `env`
+  # argument (not merged into the top-level attrset) so a name collision
+  # with a *future* mkShell/mkDerivation argument throws instead of
+  # silently overriding it. Values must be strings/bools/ints/derivations
+  # — mkDerivation enforces this too.
+  inherit env;
+})

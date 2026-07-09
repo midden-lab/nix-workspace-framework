@@ -18,6 +18,14 @@ let
 
   apiOk =
     lib.all (k: lib.assertMsg (throwsOn k) "env.${k} must be rejected by the reserved-key guard") reserved
+    # Issue #3: env is passed through mkDerivation's own `env` argument
+    # rather than merged into the top-level attrset, so a collision with
+    # *any* current or future mkShell/mkDerivation attribute throws —
+    # not just the ones on our reservedKeys list. `name` is not reserved
+    # by us; this is exactly the bug (silent derivation rename) issue #3
+    # reported.
+    && lib.assertMsg (throwsOn "name")
+      "env.name (an unreserved but real mkDerivation attribute) must also be rejected"
     && lib.assertMsg (plain.TEST_VAR == "yes")
       "plain env vars must pass through to the shell"
     && lib.assertMsg (plain.NIX_SHELL_NAME == "t")
