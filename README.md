@@ -116,7 +116,7 @@ The devShell ↔ hooks.zsh contract: the shell provides `NIX_SHELL_NAME` (drives
 
 - **Flake source = git tree**: `git add` new files before `nix develop`/`use flake` can see them
 - **Env var placement**: static vars → `env` argument; dynamic/project-anchored vars → the envrc (which captures the project repo root as `WS_PROJECT_ROOT` from `$OLDPWD` — inside a `source_env`'d file, `$PWD` is the envrc's own directory, not the project)
-- **Secrets and personal config** (accounts, tokens, hostnames) stay in `$HOME` files, never in the workspace repo; `extras.zsh` should be team-shareable
+- **Secrets and personal config** (accounts, tokens, hostnames) stay in `$HOME` files, never in the workspace repo; `extras.zsh` should be team-shareable. This is mechanical, not just hygiene: `zdotdir = ./.` copies the whole project directory into the Nix store, which is **world-readable on multi-user Nix installs** — any file in a project dir becomes readable by every local user once the shell evaluates
 - **devShell attr names can't contain dots**: directory `my.project` → attr `my-project`
 - **hooks.zsh is generated, not hand-edited**: the canonical copy lives in this repo; your workspace holds a byte-identical copy (it must exist at a stable path for `~/.zshrc`, and it self-locates your repo). `nix run .#sync-hooks` regenerates it from the rev pinned in your `flake.lock`, so hooks and library never skew. Every devShell also exports `NIX_WS_FRAMEWORK_HOOKS` (the canonical file at the locked rev), and hooks.zsh warns once per session if your copy differs — so you'll know when an update touched the hooks
 
@@ -128,6 +128,11 @@ nix run .#sync-hooks          # regenerate hooks.zsh from the new pin (commit it
 direnv reload                 # in a project — refresh the nix-direnv cache
 exec zsh                      # pick up the refreshed hooks in your current terminal
 ```
+
+## Known limitations
+
+- **The prompt marker assumes a static `PROMPT`.** hooks.zsh captures the base prompt once, on first render, then inserts the marker (`nix-shell ❄︎` before `%c` for themes like robbyrussell, a prepended `❄︎ <name>` otherwise). Themes that rewrite `PROMPT` on every precmd — powerlevel10k, some starship setups — will clobber the marker or be frozen by the captured copy. Static-PROMPT themes (robbyrussell, agnoster and most oh-my-zsh themes) work as intended. A p10k segment driven by `$NIX_SHELL_NAME` would be the native alternative for those setups.
+- **Only the first `%c` gets the marker.** A theme with multiple `%c` occurrences sees the insertion once.
 
 ## Testing
 

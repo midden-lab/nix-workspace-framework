@@ -47,7 +47,7 @@ New behavior in lib/ or hooks.zsh should land with a regression test in `tests/`
 ## Architecture Notes
 
 - `mkWorkspaceShell` is two-stage: `{ pkgs, common }` (bound once per consumer flake) then the per-project attrset. `common.packages` + project `packages` + a generated `versions` script (writeShellScriptBin) form the shell; `NIX_SHELL_NAME` is set by the shell itself.
-- The shellHook is interactive-only (`case "$-" in *i*)`): direnv capture and `nix develop --command` runs skip banner and exec; interactive manual `nix develop` prints the banner and execs into zsh with `ZDOTDIR = <project dir store copy>`.
+- The shellHook is interactive-only (`case "$-" in *i*)`): direnv capture and `nix develop --command` runs skip banner and exec; interactive manual `nix develop` prints the banner and execs into zsh with `ZDOTDIR = <project dir store copy>`. That store copy is why secrets may never live in a project dir: the Nix store is world-readable on multi-user installs.
 - The devShell ↔ hooks.zsh contract: shell provides `NIX_SHELL_NAME` (prompt marker), `versions` (banner), and `NIX_WS_FRAMEWORK_HOOKS` (canonical hooks path for the drift alert); the consumer's envrc exports `WS_ZSH_DIR` (where hooks.zsh finds `*.zsh` extras). Envrc convention: capture `WS_PROJECT_ROOT="$OLDPWD"` first (inside a `source_env`'d file, `$PWD` is the envrc's own dir, not the project).
 - The template ships a `CLAUDE.md` for scaffolded workspaces — if conventions change, update it together with the example project and README.
 
