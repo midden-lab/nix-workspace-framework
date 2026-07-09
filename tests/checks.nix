@@ -27,10 +27,12 @@ let
     && lib.assertMsg (builtins.tryEval (builtins.seq (mkW base).name true)).success
       "the minimal call (defaulted packages/env/versionChecks) must evaluate";
 
+  # Greeting and label are hostile on purpose: quotes and $(...) must
+  # render literally, never execute (issue #2).
   bannerShell = mkW (base // {
     name = "banner";
-    greeting = "🚀 Test Environment Loaded.";
-    versionChecks = [{ label = "Zsh:      "; command = "echo 5.9"; }];
+    greeting = ''🚀 Test "Environment" Loaded. $(echo injected)'';
+    versionChecks = [{ label = "Zsh's:    "; command = "echo 5.9"; }];
   });
   versionsBin = lib.findFirst (p: lib.getName p == "versions")
     (throw "versions script missing from the shell's packages")
@@ -62,8 +64,11 @@ in
   banner-render = pkgs.runCommand "banner-render" { } ''
     out_text=$(${versionsBin}/bin/versions)
     printf '%s\n' "$out_text"
-    printf '%s\n' "$out_text" | grep -F "🚀 Test Environment Loaded."
-    printf '%s\n' "$out_text" | grep -F "Zsh:" | grep -F "5.9"
+    printf '%s\n' "$out_text" | grep -F '🚀 Test "Environment" Loaded. $(echo injected)'
+    printf '%s\n' "$out_text" | grep -F "Zsh's:" | grep -F "5.9"
+    if printf '%s\n' "$out_text" | grep -x ".*injected"; then
+      echo "greeting command substitution executed" >&2; exit 1
+    fi
     touch $out
   '';
 

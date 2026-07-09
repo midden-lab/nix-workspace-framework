@@ -23,12 +23,14 @@ let
   reservedKeys = [ "packages" "shellHook" "NIX_SHELL_NAME" "NIX_WS_FRAMEWORK_HOOKS" ];
   clashes = builtins.filter (k: env ? ${k}) reservedKeys;
 
+  # greeting and labels are data — escape them so quotes and $(...) render
+  # literally. Each check's `command` is intentionally code and stays raw.
   versions = pkgs.writeShellScriptBin "versions" ''
-    echo "${greeting}"
+    echo ${lib.escapeShellArg greeting}
     echo "--------------------------------------------------------"
     echo "🤖 Tool Versions:"
     ${lib.concatMapStrings
-      (c: "echo \"  ${c.label} $(${c.command})\"\n")
+      (c: "echo ${lib.escapeShellArg "  ${c.label}"}\" $(${c.command})\"\n")
       versionChecks}
     echo "--------------------------------------------------------"
   '';
