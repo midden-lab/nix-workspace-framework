@@ -9,27 +9,33 @@ The framework is intentionally small: one Nix function (`mkWorkspaceShell`), one
 ## Quick start
 
 ```bash
-# 1. Scaffold your private workspace repo
+# 1. Wire nix-direnv into direnv — easy to skip, and skipping it has no hard
+#    failure to signal the gap: direnv just falls back to its slower,
+#    uncached built-in `use flake` support.
+mkdir -p ~/.config/direnv
+echo 'source $HOME/.nix-profile/share/nix-direnv/direnvrc' >> ~/.config/direnv/direnvrc
+
+# 2. Scaffold your private workspace repo
 mkdir ~/workspace/my-workspaces && cd ~/workspace/my-workspaces
 nix flake init -t github:midden-lab/nix-workspace-framework#workspace
 git init && git add .
 
-# 2. Materialize hooks.zsh from the pinned framework, then commit
+# 3. Materialize hooks.zsh from the pinned framework, then commit
 nix run .#sync-hooks
 git add hooks.zsh && git commit -m "Init workspace repo"
 
-# 3. Wire up zsh (after your oh-my-zsh/prompt setup in ~/.zshrc)
+# 4. Wire up zsh (after your oh-my-zsh/prompt setup in ~/.zshrc)
 #    source ~/workspace/my-workspaces/hooks.zsh
 
-# 4. Point a project repo at the example environment
+# 5. Point a project repo at the example environment
 cd ~/src/some-project
 echo 'source_env ~/workspace/my-workspaces/example/envrc' > .envrc
 direnv allow
 
-# 5. cd in — the environment activates, the banner prints once per session
+# 6. cd in — the environment activates, the banner prints once per session
 ```
 
-Prerequisites: Nix with `experimental-features = nix-command flakes`, [direnv](https://direnv.net) + [nix-direnv](https://github.com/nix-community/nix-direnv) (`~/.config/direnv/direnvrc` sourcing nix-direnv), zsh.
+Prerequisites: Nix with `experimental-features = nix-command flakes`, [direnv](https://direnv.net) + [nix-direnv](https://github.com/nix-community/nix-direnv), zsh.
 
 ## Architecture
 
