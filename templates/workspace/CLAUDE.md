@@ -30,8 +30,9 @@ This repo is typically private — project envrcs often carry env vars you don't
 
 ## Updating
 
-- `nix flake update nixpkgs` — bump tool versions; `nix flake update framework` — bump the framework library
-- After a framework bump: `nix run .#sync-hooks` to regenerate hooks.zsh, commit it, `exec zsh` to pick it up
+- `make update` — bump all inputs and validate; `make update-framework` — bump framework, re-sync hooks.zsh, and validate
+- Or manually: `nix flake update nixpkgs` (tool versions), `nix flake update framework` (framework library)
+- After a manual framework bump: `nix run .#sync-hooks` to regenerate hooks.zsh, commit it, `exec zsh` to pick it up
 
 ## Verification
 

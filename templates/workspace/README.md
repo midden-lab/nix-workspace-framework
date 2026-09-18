@@ -17,6 +17,16 @@ Copy `example/`, follow its README, register the devShell in `flake.nix`, and `g
 
 ## Updating
 
+Using `make`:
+
+```bash
+make update              # update all inputs and validate
+make update-framework    # update framework input, re-sync hooks.zsh, and validate
+direnv reload            # refresh an active project's cache
+```
+
+Or manually:
+
 ```bash
 nix flake update framework   # bump the framework library
 nix run .#sync-hooks         # regenerate hooks.zsh from the new pin (commit it)

@@ -28,6 +28,7 @@
         install -m 644 ${./hooks.zsh} ./hooks.zsh
         echo "hooks.zsh synced from the pinned framework — review and commit it."
       ''}";
+      meta.description = "Sync hooks.zsh from the pinned framework";
     };
 
     templates.workspace = {
